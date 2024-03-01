@@ -1,3 +1,12 @@
+'''
+This file creates Treasury zero-coupon yield curve from 1992/7/1 to 2024/1/1.
+
+In the first part, a cubic splines interpolation method is used to interpolate the existing Treausry yields.
+
+After interpolation, a bootstraping method is used to create Treasury zero-coupon yield curve.
+'''
+
+
 import os
 from pathlib import Path
 
@@ -42,7 +51,10 @@ df['Y20'].isna().any()
 df = df.loc[341:,:].reset_index()
 df
 
-### Cubic Splines Interpolation
+
+
+
+### CUBIC SPLINES INTERPOLATION
 
 from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
@@ -85,7 +97,9 @@ interpolated_results.columns = new_columns
 interpolated_results
 
 
-### Boostraping to create Treasury zero-coupon yield curve
+
+
+### BOOTSTRAPING: CREATE TREASURY ZERO-COUPON YIELD CURVE
 
 # Import Newton's method to solve the equation
 from scipy.optimize import newton
