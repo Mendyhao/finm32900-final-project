@@ -1,15 +1,26 @@
 import os
-desired_path = "c:\\Users\\11930\\Desktop\\FINM 32900 Data Science Tools for Finance\\finm32900-final-project\\src"
-os.chdir(desired_path) # 改变当前工作目录
-print(os.getcwd())
+from pathlib import Path
+
+# Derive current working directory
+current_dir = Path(os.getcwd())
+
+# If current working directory is not 'src', update it
+if current_dir.stem != 'src':
+    src_directory = current_dir / 'src'
+    os.chdir(src_directory)
+
+import config
+
+OUTPUT_DIR = Path(config.OUTPUT_DIR)
+DATA_DIR = Path(config.DATA_DIR)
 
 import pandas as pd
 import numpy as np
-from scipy.interpolate import CubicSpline
-import matplotlib.pyplot as plt
+
+file_path = DATA_DIR / 'manual' /'Monthly T-bill Interest Rates.csv'
 
 # Read monthly T-bill interest rates
-df = pd.read_csv('Monthly T-bill Interest Rates.csv')
+df = pd.read_csv(file_path)
 
 # Have a look at the data
 df.head()
@@ -21,83 +32,63 @@ print(df.dtypes)
 df['Date'] = pd.to_datetime(df['Date'], format='%Y/%m/%d')
 
 # There are 'NC' values in 'Y20' column. Change these values to NaN and interpolate these points 
-df['Y20'] = df['Y20'].replace('NC', np.nan)  # 将'NC'替换为NaN
-df['Y20'] = df['Y20'].astype(float)  # 转换其他值为浮点数
-df['Y20'] = df['Y20'].interpolate()  # 对NaN值进行插值
+df['Y20'] = df['Y20'].replace('NC', np.nan)  # turn 'NC' to NaN
+df['Y20'] = df['Y20'].astype(float)  # turn other values as float
+df['Y20'] = df['Y20'].interpolate()  # interpolate NaN values
 
 # Check if there is any NaN values in column 'Y20'
 df['Y20'].isna().any()
 
-# df['M01'] = df['M01'].interpolate()  # 对NaN值进行插值
-# df['M03'] = df['M03'].interpolate()  # 对NaN值进行插值
-# df['M06'] = df['M06'].interpolate()  # 对NaN值进行插值
-# df['Y02'] = df['Y02'].interpolate()  # 对NaN值进行插值
-# df['Y07'] = df['Y07'].interpolate()  # 对NaN值进行插值
-# df['Y30'] = df['Y30'].interpolate()  # 对NaN值进行插值
-
-df.head()
-
-df.to_csv(r"Monthly T-bill.csv", index=False)
-
-df = df.loc[237:,:].reset_index()
-
+df = df.loc[341:,:].reset_index()
 df
 
-# Cubic Splines Interpolation
+### Cubic Splines Interpolation
 
-import pandas as pd
-import numpy as np
 from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
 
-# 初始化一个空列表来存储每一行的插值结果
+# Initialize an empty list to store interpolated results
 interpolated_results = []
 
-periods = ['Y01', 'Y02', 'Y03', 'Y05', 'Y07', 'Y10', 'Y20', 'Y30']  # 期限列
+periods = ['Y01', 'Y02', 'Y03', 'Y05', 'Y07', 'Y10', 'Y20', 'Y30']  # maturities
 
-# 定义期限的数值表示（月份转换为年）
+# Define numeric representations for maturities (in year)
 maturity_numeric = np.array([1, 2, 3, 5, 7, 10, 20, 30])
 
-# 循环遍历第344行之后的数据行
-for index, row in df.iloc[342:].iterrows():
-    # 提取每一行的利率数据，忽略日期，并尝试将数据转换为浮点数，无法转换的设置为NaN
+# Loop through every row to interpolate yield rate
+for index, row in df.iterrows():
+    
+    # Extract every row and corresponding columns
     monthly_data = df.loc[index, periods].values
     
-    # 创建立方样条插值函数
+    # Create cubic splines interpolation function
     cs = CubicSpline(maturity_numeric, monthly_data)
 
-    # 创建用于插值的期限点
+    # Create total number of maturities after interpolation
     maturity_interpolate = np.linspace(maturity_numeric.min(), maturity_numeric.max(), 59)
 
-    # 计算插值利率并添加到结果列表
+    # Derive the interpolation results
     interpolated_rates = cs(maturity_interpolate)
+    
+    # Add the half year ('M06') yield rate as the first column
     interpolated_rates = np.insert(interpolated_rates, 0, df.loc[index, "M06"])
-    # interpolated_results.append(df.loc[index, "M06"])
     interpolated_results.append(interpolated_rates)
 
+# Turn into a dataframe
 interpolated_results = pd.DataFrame(interpolated_results)
 
-# 假设 `interpolated_results` 是一个pandas DataFrame
+# Rename columns
 new_columns = [f'Y{1+0.5*(i-1)}' for i in range(60)]
 interpolated_results.columns = new_columns
 
-interpolated_results.head()
-
-# # 加上日期列并输出文件
-# # 重新创建日期范围DataFrame，以确保其长度与interpolated_results_df相匹配
-# date_range = pd.date_range(start='2001/7/1', end='2024/1/1', freq='MS')
-# date_df = pd.DataFrame(date_range[:len(interpolated_results)], columns=['Date'])
-
-# # 现在将日期DataFrame与插值结果DataFrame连接起来
-# interpolated_results_date = pd.concat([date_df, interpolated_results], axis=1)
-
-# interpolated_results_date.to_csv(r"interpolated_results_date.csv", index=False)
-# interpolated_results.to_csv(r"interpolated_results.csv", index=False)
+# Check output
+interpolated_results
 
 
-# Boostraping
+### Boostraping to create Treasury zero-coupon yield curve
+
+# Import Newton's method to solve the equation
 from scipy.optimize import newton
-import numpy as np
 
 # Function to compute the price of the bond based on a given yield to maturity (r)
 def bond_price(r, T, rates):
@@ -114,7 +105,7 @@ def bond_price_difference(r, T, rates):
 # Loop through each cell
 
 zero_rate = []
-for i in range(271):
+for i in range(130, len(interpolated_results)):
     rates = interpolated_results.copy().loc[i,:]
     zero_rate_row = rates.copy()
     
@@ -128,18 +119,19 @@ for i in range(271):
     
     zero_rate.append(zero_rate_row)
 
-# Generate Output file: zero_rate_date
+### Generate Output file: zero_rate_date
 
-zero_rate = pd.DataFrame(zero_rate)
+zero_rate = pd.DataFrame(zero_rate).reset_index(drop=True)
 
-# 重新创建日期范围DataFrame，以确保其长度与interpolated_results_df相匹配
-date_range = pd.date_range(start='2001/7/1', end='2024/1/1', freq='MS')
+# Create a series of dates corresponding to the results
+date_range = pd.date_range(start='1992/7/1', end='2024/1/1', freq='MS')
 date_df = pd.DataFrame(date_range[:len(zero_rate)], columns=['Date'])
 
-# 现在将日期DataFrame与插值结果DataFrame连接起来
+# Concatenate the dates with 'zero_rate'
 zero_rate_date = pd.DataFrame(pd.concat([date_df, zero_rate], axis=1))
 
-zero_rate.to_csv(r"zero_rate_date.csv", index=False)
+# Define output path
+output_file_path = OUTPUT_DIR / 'zero_rate_date.csv'
 
-zero_rate.head()
-zero_rate_date.head()
+# Write the dataframe into a .csv file
+zero_rate_date.to_csv(output_file_path, index=False)
