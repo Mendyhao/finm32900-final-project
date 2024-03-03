@@ -1,3 +1,12 @@
+'''
+This file creates Treasury zero-coupon yield curve from 1992/7/1 to 2024/1/1.
+
+In the first part, a cubic splines interpolation method is used to interpolate the existing Treausry yields.
+
+After interpolation, a bootstraping method is used to create Treasury zero-coupon yield curve.
+'''
+
+
 import os
 from pathlib import Path
 
@@ -17,7 +26,7 @@ DATA_DIR = Path(config.DATA_DIR)
 import pandas as pd
 import numpy as np
 
-file_path = DATA_DIR / 'manual' /'Monthly T-bill Interest Rates.csv'
+file_path = DATA_DIR / 'manual' /'Monthly Treasury Yield.csv'
 
 # Read monthly T-bill interest rates
 df = pd.read_csv(file_path)
@@ -42,7 +51,10 @@ df['Y20'].isna().any()
 df = df.loc[341:,:].reset_index()
 df
 
-### Cubic Splines Interpolation
+
+
+
+### CUBIC SPLINES INTERPOLATION
 
 from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
@@ -85,7 +97,9 @@ interpolated_results.columns = new_columns
 interpolated_results
 
 
-### Boostraping to create Treasury zero-coupon yield curve
+
+
+### BOOTSTRAPING: CREATE TREASURY ZERO-COUPON YIELD CURVE
 
 # Import Newton's method to solve the equation
 from scipy.optimize import newton
@@ -131,7 +145,7 @@ date_df = pd.DataFrame(date_range[:len(zero_rate)], columns=['Date'])
 zero_rate_date = pd.DataFrame(pd.concat([date_df, zero_rate], axis=1))
 
 # Define output path
-output_file_path = OUTPUT_DIR / 'zero_rate_date.csv'
+output_file_path = OUTPUT_DIR / 'Treasury Zero Coupon Rate.csv'
 
 # Write the dataframe into a .csv file
 zero_rate_date.to_csv(output_file_path, index=False)
