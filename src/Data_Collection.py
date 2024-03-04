@@ -1,3 +1,14 @@
+import os
+from pathlib import Path
+
+# Derive current working directory
+current_dir = Path(os.getcwd())
+
+# If current working directory is not 'src', update it
+if current_dir.stem != 'src':
+    src_directory = current_dir / 'src'
+    os.chdir(src_directory)
+
 import config
 from pathlib import Path
 OUTPUT_DIR = Path(config.OUTPUT_DIR)
