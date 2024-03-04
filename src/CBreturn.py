@@ -15,6 +15,7 @@ Dataset path:
 
 import os
 from pathlib import Path
+from datetime import datetime
 
 # Derive current working directory
 current_dir = Path(os.getcwd())
@@ -35,7 +36,7 @@ import numpy as np
 
 def combine_Lehman():
     # 1) Lehman
-    folder_path = DATA_DIR / 'Lehman data'
+    folder_path = DATA_DIR /'manual/Lehman data'
     column_widths = [8, 31, 10, 10, 9, 2, 8, 8, 8, 8, 10, 7, 2, 1, 7, 1, 7, 7, 3, 2, 1, 7, 2]
     files = os.listdir(folder_path)
     dfs = []
@@ -79,7 +80,7 @@ def combine_Lehman():
 
 def read_trace():
     # 2) TRACE
-    file_path_T = DATA_DIR / 'TRACE.csv'
+    file_path_T = DATA_DIR / 'manual/TRACE.csv'
     columns_T = ['DATE', 'CUSIP', 'PRICE_L5M', 'COUPON', 'YIELD']
     dfT = pd.read_csv(file_path_T, usecols=columns_T)
 
@@ -94,7 +95,8 @@ def read_trace():
 
 def read_mergent():
     # 3) Mergent
-    file_path_M = DATA_DIR / 'Mergent.csv'
+    #file_path_M = DATA_DIR / 'manual/fzwsx7pyydymhs9q.csv'
+    file_path_M = DATA_DIR / 'manual/Mergent.csv'
     columns_M = ['complete_cusip', 'flat_price', 'accrued_interest', 'OFFERING_YIELD','trans_date']
     dfM = pd.read_csv(file_path_M, usecols=columns_M)
 
@@ -152,21 +154,29 @@ def data_cleaning(df_merge):
 
     return df_b
 
-def replicate_columns(df_b):
+def replicate_columns(df_b, time):
     # Calculate log return
-    df_b['log_return'] = np.log(df_sorted['return'])
+    df_b['log_return'] = np.log(df_b['return'])
     df_b = df_b.dropna(subset=['log_return'])
         #check
     df_b.describe()
 
     # Calculate sum
     df_sum = df_b.dropna(subset=['yield'])
-    df_sum['group'] = pd.qcut(df_sum['yield'], q=10, labels=False)
-    group_means = df_sum.groupby(['date', 'group'])['log_return'].mean().reset_index()
-    result = group_means.pivot(index='date', columns='group', values='log_return').reset_index()
+    
+    #Filter by Date
+    df_sum = df_sum[df_sum['date']<=time]
+
+    yield_means = df_sum.groupby('id')['yield'].mean() 
+    df_sum['mean_yield'] = df_sum['id'].map(yield_means)
+    df_sum['group'] = pd.qcut(df_sum['mean_yield'], q=10, labels=False)
+    #df_sum['group'] = pd.qcut(df_sum['yield'], q=10, labels=False)
+
+    group_means = df_sum.groupby(['date', 'group'])['return'].mean().reset_index()
+    result = group_means.pivot(index='date', columns='group', values='return').reset_index()
     print(result)
     rename = result.columns[1:]
-    new_column_names = ['US_bonds_{:02d}'.format(i+1) for i in range(len(rename))]
+    new_column_names = ['US_bonds_{:02d}'.format(i+11) for i in range(len(rename))]
     columns_mapping = dict(zip(rename, new_column_names))
     result.rename(columns=columns_mapping, inplace=True)
 
@@ -180,6 +190,8 @@ if __name__ == "__main__":
     dfM = read_mergent()
     df_merge = merge_and_fillna(dfL, dfT, dfM)
     df_b = data_cleaning(df_merge)
-    
-    result = replicate_columns(df_b)
+
+    # Update Dataframe Until Now
+    end_date = datetime(2023, 12, 31)
+    result = replicate_columns(df_b, end_date)
     result.to_csv(OUTPUT_DIR / 'Corporate Bond Return Replicated.csv', index=False)  # export output to specified path
