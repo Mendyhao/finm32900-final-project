@@ -2,9 +2,9 @@
 README
 
 What next:
-please check the coding part; (checked -- Mengdi Hao)
-maybe convert into def or seperate them into deferent files; (separated into functions -- Mengdi Hao)
-please add the filter part, refer to the high light lines in google file; (TO BE DONE)
+please check the coding part; (checked -- Mengdi Hao) (checked -- Mengdi Hao)
+maybe convert into def or seperate them into deferent files; (separated into functions -- Mengdi Hao) (separated into functions -- Mengdi Hao)
+please add the filter part, refer to the high light lines in google file; (TO BE DONE) (TO BE DONE)
 please add them to github
 
 Dataset path:
@@ -35,7 +35,7 @@ import numpy as np
 
 def combine_Lehman():
     # 1) Lehman
-    folder_path = DATA_DIR / 'manual' / 'Lehman data'
+    folder_path = DATA_DIR / 'Lehman data'
     column_widths = [8, 31, 10, 10, 9, 2, 8, 8, 8, 8, 10, 7, 2, 1, 7, 1, 7, 7, 3, 2, 1, 7, 2]
     files = os.listdir(folder_path)
     dfs = []
@@ -79,16 +79,14 @@ def combine_Lehman():
 
 def read_trace():
     # 2) TRACE
-    file_path_T = DATA_DIR / 'TRACE_joy.csv'
+    file_path_T = DATA_DIR / 'TRACE.csv'
     columns_T = ['DATE', 'CUSIP', 'PRICE_L5M', 'COUPON', 'YIELD']
     dfT = pd.read_csv(file_path_T, usecols=columns_T)
-    # dfT = pd.read_csv(file_path_T)
 
-    stdT = ['date', 'id', 'price', 'yield', 'coupon']
+    stdT = ['date', 'id', 'coupon', 'yield', 'price']
     dfT = dfT.rename(columns=dict(zip(dfT.columns, stdT)))
     dfT['date'] = pd.to_datetime(dfT['date'], format='%Y-%m-%d')
     dfT['yield'] = dfT['yield'].str.rstrip('%')
-    # dfT['yield'] = dfT['yield']*100
     convert_float = ['yield', 'coupon', 'price']
     dfT[convert_float] = dfT[convert_float].apply(pd.to_numeric, errors='coerce')
 
@@ -96,16 +94,13 @@ def read_trace():
 
 def read_mergent():
     # 3) Mergent
-    file_path_M = DATA_DIR / 'Mergent_joy.csv'
+    file_path_M = DATA_DIR / 'Mergent.csv'
     columns_M = ['complete_cusip', 'flat_price', 'accrued_interest', 'OFFERING_YIELD','trans_date']
     dfM = pd.read_csv(file_path_M, usecols=columns_M)
-    # dfM = pd.read_csv(file_path_M)
 
-    stdM = ['id', 'price', 'coupon', 'date', 'yield'] # deleted yield here cuz when doing data collection, 
-                                             # there is no offering_yield column in the database
+    stdM = ['id', 'price', 'coupon', 'date', 'yield']
     dfM = dfM.rename(columns=dict(zip(dfM.columns, stdM)))
-    dfM['date'] = pd.to_datetime(dfM['date'], format='%Y-%m-%d', errors='coerce')
-
+    dfM['date'] = pd.to_datetime(dfM['date'], format='%Y-%m-%d')
     convert_float = ['yield', 'coupon', 'price']
     dfM[convert_float] = dfM[convert_float].apply(pd.to_numeric, errors='coerce')
 
@@ -133,6 +128,7 @@ def data_cleaning(df_merge):
     
     # 1. Drop corporate price below on cent per dollar
     df_drop = df_merge[~(df_merge['price'] < 0.01)]
+    print(df_drop)
 
     # 3. Remove bounceback
 
@@ -158,14 +154,17 @@ def data_cleaning(df_merge):
 
 def replicate_columns(df_b):
     # Calculate log return
-    df_b['log_return'] = np.log(df_b['return'])
+    df_b['log_return'] = np.log(df_sorted['return'])
     df_b = df_b.dropna(subset=['log_return'])
+        #check
+    df_b.describe()
 
     # Calculate sum
     df_sum = df_b.dropna(subset=['yield'])
     df_sum['group'] = pd.qcut(df_sum['yield'], q=10, labels=False)
     group_means = df_sum.groupby(['date', 'group'])['log_return'].mean().reset_index()
     result = group_means.pivot(index='date', columns='group', values='log_return').reset_index()
+    print(result)
     rename = result.columns[1:]
     new_column_names = ['US_bonds_{:02d}'.format(i+1) for i in range(len(rename))]
     columns_mapping = dict(zip(rename, new_column_names))
