@@ -136,8 +136,6 @@ def merge_and_fillna(dfL, dfT, dfM):
 
 def data_cleaning(df_merge):
     
-    def data_cleaning(df_merge):
-    
     # 1. Drop corporate price below on cent per dollar
     df_drop = df_merge[~(df_merge['price'] < 0.01)]
     print(df_drop)
