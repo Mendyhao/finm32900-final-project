@@ -2,9 +2,9 @@
 README
 
 What next:
-please check the coding part; (checked -- Mengdi Hao)
-maybe convert into def or seperate them into deferent files; (separated into functions -- Mengdi Hao)
-please add the filter part, refer to the high light lines in google file; (TO BE DONE)
+please check the coding part; (checked -- Mengdi Hao) (checked -- Mengdi Hao)
+maybe convert into def or seperate them into deferent files; (separated into functions -- Mengdi Hao) (separated into functions -- Mengdi Hao)
+please add the filter part, refer to the high light lines in google file; (TO BE DONE) (TO BE DONE)
 please add them to github
 
 Dataset path:
@@ -33,61 +33,74 @@ DATA_DIR = Path(config.DATA_DIR)
 
 import pandas as pd
 import numpy as np
+import os
+import re
+from pathlib import Path
 
 def combine_Lehman():
-    # 1) Lehman
-    folder_path = DATA_DIR /'manual/Lehman data'
-    column_widths = [8, 31, 10, 10, 9, 2, 8, 8, 8, 8, 10, 7, 2, 1, 7, 1, 7, 7, 3, 2, 1, 7, 2]
+
+    folder_path = DATA_DIR / 'manual/Lehman data'
+
+    # Define regular expression pattern, only match needed columns
+    pattern = re.compile(
+        r'(\S{8})\s+'          # cusip
+        r'.*?\s{2,}'           # skip name column
+        r'(\d{8})\s+'          # date
+        r'.*?\s+'              # skip idate 
+        r'.*?\s+'              # skip mdate column
+        r'.*?\s+'              # skip tdrmtx column
+        r'(-?\d+\.\d{3})\s+'   # fprc
+        r'.*?\s+'              # skip aint column
+        r'(-?\d+\.\d{4})\s+'   # cp
+        r'(-?\d+\.\d{3})\s+'   # yld
+    )
+    
     files = os.listdir(folder_path)
     dfs = []
-
-    # Useful columns
-    column_indices = [0, 2, 6, 8, 9]
-
-    dfs = []  # used to store the dataframe in each single file
 
     for file in files:
         file_path = os.path.join(folder_path, file)
         data = []
         with open(file_path, 'r') as f:
             for line in f:
-                start = 0
-                row = []
-                for i, width in enumerate(column_widths):
-                    if i in column_indices:
-                        value = line[start:start+width].strip()
-                        row.append(value)
-                    start += width
-                data.append(row)
-        df = pd.DataFrame(data, columns=column_indices)  # only keep useful columns
+                match = pattern.match(line)
+                if match:
+                    # extract interested columns only
+                    data.append(match.groups())
+                    
+        # specify columns
+        columns = ['cusip', 'date', 'fprc', 'cp', 'yld']
+        df = pd.DataFrame(data, columns=columns)
         dfs.append(df)
 
-    dfL = pd.concat(dfs, axis=0)  # concatenate all dataframes into one large dataframe
-    '''
-    cusip        a8    CUSIP
-    date         i8    Date
-    fprc       f7.3    Flat Pice (bid)
-    cp         f7.4    Coupon
-    yld        f6.3  * Yield
-    '''
-    stdL = ['id', 'date', 'price', 'coupon', 'yield']
-    dfL = dfL.rename(columns=dict(zip(dfL.columns, stdL)))
-    dfL['date'] = pd.to_datetime(dfL['date'], format='%Y%m%d')
-    convert_float = ['yield', 'coupon', 'price']
+    # concatenate all dataframes into a large dataframe
+    dfL = pd.concat(dfs, axis=0, ignore_index=True)
+
+    # convert date format
+    dfL['date'] = pd.to_datetime(dfL['date'], format='%Y%m%d', errors='coerce')
+
+    # convert numbers to numeric format
+    convert_float = ['fprc', 'cp', 'yld']
     dfL[convert_float] = dfL[convert_float].apply(pd.to_numeric, errors='coerce')
 
+    stdL = ['id', 'date', 'price', 'coupon', 'yield']
+    dfL = dfL.rename(columns=dict(zip(dfL.columns, stdL)))
+    
     return dfL
 
 def read_trace():
     # 2) TRACE
-    file_path_T = DATA_DIR / 'manual/TRACE.csv'
-    columns_T = ['DATE', 'CUSIP', 'PRICE_L5M', 'COUPON', 'YIELD']
-    dfT = pd.read_csv(file_path_T, usecols=columns_T)
+    file_path_T = DATA_DIR / 'TRACE.csv'
+    # columns_T = ['date', 'cusip', 'price_l5m', 'coupon', 'yield']
+    # dfT = pd.read_csv(file_path_T, usecols=columns_T)
+    dfT = pd.read_csv(file_path_T)
+    dfT['yield'] = dfT['yield']*100 # data automatically collected
 
-    stdT = ['date', 'id', 'coupon', 'yield', 'price']
+    stdT = ['date', 'id', 'price', 'coupon', 'yield']
     dfT = dfT.rename(columns=dict(zip(dfT.columns, stdT)))
     dfT['date'] = pd.to_datetime(dfT['date'], format='%Y-%m-%d')
-    dfT['yield'] = dfT['yield'].str.rstrip('%')
+
+    # dfT['yield'] = dfT['yield'].str.rstrip('%')
     convert_float = ['yield', 'coupon', 'price']
     dfT[convert_float] = dfT[convert_float].apply(pd.to_numeric, errors='coerce')
 
@@ -95,22 +108,20 @@ def read_trace():
 
 def read_mergent():
     # 3) Mergent
-    #file_path_M = DATA_DIR / 'manual/fzwsx7pyydymhs9q.csv'
-    file_path_M = DATA_DIR / 'manual/Mergent.csv'
-    columns_M = ['complete_cusip', 'flat_price', 'accrued_interest', 'OFFERING_YIELD', 'trans_date', 'COUPON_TYPE', 'OVERALLOTMENT_OPT', 'PUTABLE']
-    dfM = pd.read_csv(file_path_M, usecols=columns_M)
 
-    stdM = ['id', 'price', 'coupon', 'date', 'yield', 'type', 'over_opt', 'putable']
+    file_path_M = DATA_DIR / 'Mergent.csv'
+    # columns_M = ['complete_cusip', 'flat_price', 'accrued_interest', 'OFFERING_YIELD','trans_date']
+    # dfM = pd.read_csv(file_path_M, usecols=columns_M)
+    dfM = pd.read_csv(file_path_M)
+    
+    stdM = ['id', 'price', 'coupon', 'date']
+    # stdM = ['id', 'price', 'coupon', 'date', 'yield']
     dfM = dfM.rename(columns=dict(zip(dfM.columns, stdM)))
 
-    try:
-        dfM['date'] = pd.to_datetime(dfM['date'], format='%Y-%m-%d')
-    except ValueError:
-        print("Error converting date. Setting to default value.")
-        # Handle the error by setting the date to a default value or taking other actions
-        dfM['date'] = pd.to_datetime('1900-01-01')  # Adjust the default date as needed
-
-    convert_float = ['yield', 'coupon', 'price']
+    dfM['date'] = pd.to_datetime(dfM['date'], format='%Y-%m-%d', errors = 'coerce')
+    # dfM['date'] = pd.to_datetime(dfM['date'], format='%Y-%m-%d')
+    # convert_float = ['yield', 'coupon', 'price']
+    convert_float = ['coupon', 'price']
     dfM[convert_float] = dfM[convert_float].apply(pd.to_numeric, errors='coerce')
 
     return dfM
@@ -140,7 +151,7 @@ def data_cleaning(df_merge):
     df_drop = df_merge[~(df_merge['price'] < 0.01)]
     print(df_drop)
 
-    # 3. Remove bounceback
+    # 2. Remove bounceback
 
     df_drop = df_drop[
         (df_drop['type'] != 'Z') &
@@ -174,14 +185,15 @@ def data_cleaning(df_merge):
 
 def replicate_columns(df_b, time):
     # Calculate log return
+
     df_b['log_return'] = np.log(df_b['return'])
     df_b = df_b.dropna(subset=['log_return'])
         #check
-    df_b.describe()
+    # df_b.describe()
 
     # Calculate sum
     df_sum = df_b.dropna(subset=['yield'])
-    
+
     #Filter by Date
     df_sum = df_sum[df_sum['date']<=time]
 
@@ -193,6 +205,7 @@ def replicate_columns(df_b, time):
     group_means = df_sum.groupby(['date', 'group'])['return'].mean().reset_index()
     result = group_means.pivot(index='date', columns='group', values='return').reset_index()
     print(result)
+    
     rename = result.columns[1:]
     new_column_names = ['US_bonds_{:02d}'.format(i+11) for i in range(len(rename))]
     columns_mapping = dict(zip(rename, new_column_names))
