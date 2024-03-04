@@ -114,12 +114,14 @@ def read_mergent():
     # dfM = pd.read_csv(file_path_M, usecols=columns_M)
     dfM = pd.read_csv(file_path_M)
     
-    stdM = ['id', 'price', 'coupon', 'date']
+    # stdM = ['id', 'price', 'coupon', 'date']
     # stdM = ['id', 'price', 'coupon', 'date', 'yield']
+    stdM = ['id', 'price', 'coupon', 'date', 'COUPON_TYPE', 'OVERALLOTMENT_OPT', 'PUTABLE']
     dfM = dfM.rename(columns=dict(zip(dfM.columns, stdM)))
 
     dfM['date'] = pd.to_datetime(dfM['date'], format='%Y-%m-%d', errors = 'coerce')
     # dfM['date'] = pd.to_datetime(dfM['date'], format='%Y-%m-%d')
+
     # convert_float = ['yield', 'coupon', 'price']
     convert_float = ['coupon', 'price']
     dfM[convert_float] = dfM[convert_float].apply(pd.to_numeric, errors='coerce')
@@ -154,12 +156,12 @@ def data_cleaning(df_merge):
     # 2. Remove bounceback
 
     df_drop = df_drop[
-        (df_drop['type'] != 'Z') &
-        (df_drop['over_opt'] != 'Y') &
-        (df_drop['putable'] != 'Y')
+        (df_drop['COUPON_TYPE'] != 'Z') &
+        (df_drop['OVERALLOTMENT_OPT'] != 'Y') &
+        (df_drop['PUTABLE'] != 'Y')
     ]
     
-    columns_to_drop = ['price_from_dfM', 'coupon_from_dfM', 'yield_from_dfM', 'type', 'over_opt', 'putable']
+    columns_to_drop = ['price_from_dfM', 'coupon_from_dfM', 'yield_from_dfM', 'COUPON_TYPE', 'OVERALLOTMENT_OPT', 'PUTABLE']
     df_drop = df_drop.drop(columns=columns_to_drop)
 
     # Calculate return
