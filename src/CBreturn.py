@@ -15,6 +15,7 @@ Dataset path:
 
 import os
 from pathlib import Path
+from datetime import datetime
 
 # Derive current working directory
 current_dir = Path(os.getcwd())
@@ -37,6 +38,7 @@ import re
 from pathlib import Path
 
 def combine_Lehman():
+
     folder_path = DATA_DIR / 'manual/Lehman data'
 
     # Define regular expression pattern, only match needed columns
@@ -52,7 +54,7 @@ def combine_Lehman():
         r'(-?\d+\.\d{4})\s+'   # cp
         r'(-?\d+\.\d{3})\s+'   # yld
     )
-
+    
     files = os.listdir(folder_path)
     dfs = []
 
@@ -106,6 +108,7 @@ def read_trace():
 
 def read_mergent():
     # 3) Mergent
+
     file_path_M = DATA_DIR / 'Mergent.csv'
     # columns_M = ['complete_cusip', 'flat_price', 'accrued_interest', 'OFFERING_YIELD','trans_date']
     # dfM = pd.read_csv(file_path_M, usecols=columns_M)
@@ -122,6 +125,7 @@ def read_mergent():
     dfM[convert_float] = dfM[convert_float].apply(pd.to_numeric, errors='coerce')
 
     return dfM
+
 
 def merge_and_fillna(dfL, dfT, dfM):
     # Merge 1)&2)
@@ -149,6 +153,15 @@ def data_cleaning(df_merge):
 
     # 2. Remove bounceback
 
+    df_drop = df_drop[
+        (df_drop['type'] != 'Z') &
+        (df_drop['over_opt'] != 'Y') &
+        (df_drop['putable'] != 'Y')
+    ]
+    
+    columns_to_drop = ['price_from_dfM', 'coupon_from_dfM', 'yield_from_dfM', 'type', 'over_opt', 'putable']
+    df_drop = df_drop.drop(columns=columns_to_drop)
+
     # Calculate return
     df_sorted = df_drop.sort_values('date', ascending=True).reset_index(drop=True)
     df_sorted['date'].is_monotonic_increasing
@@ -169,8 +182,8 @@ def data_cleaning(df_merge):
 
     return df_b
 
-def replicate_columns(df_b):
-    
+
+def replicate_columns(df_b, time):
     # Calculate log return
 
     df_b['log_return'] = np.log(df_b['return'])
@@ -180,9 +193,19 @@ def replicate_columns(df_b):
 
     # Calculate sum
     df_sum = df_b.dropna(subset=['yield'])
-    df_sum['group'] = pd.qcut(df_sum['yield'], q=10, labels=False)
-    group_means = df_sum.groupby(['date', 'group'])['log_return'].mean().reset_index()
-    result = group_means.pivot(index='date', columns='group', values='log_return').reset_index()
+
+    #Filter by Date
+    df_sum = df_sum[df_sum['date']<=time]
+
+    yield_means = df_sum.groupby('id')['yield'].mean() 
+    df_sum['mean_yield'] = df_sum['id'].map(yield_means)
+    df_sum['group'] = pd.qcut(df_sum['mean_yield'], q=10, labels=False)
+    #df_sum['group'] = pd.qcut(df_sum['yield'], q=10, labels=False)
+
+    group_means = df_sum.groupby(['date', 'group'])['return'].mean().reset_index()
+    result = group_means.pivot(index='date', columns='group', values='return').reset_index()
+    print(result)
+    
     rename = result.columns[1:]
     new_column_names = ['US_bonds_{:02d}'.format(i+11) for i in range(len(rename))]
     columns_mapping = dict(zip(rename, new_column_names))
@@ -198,6 +221,8 @@ if __name__ == "__main__":
     dfM = read_mergent()
     df_merge = merge_and_fillna(dfL, dfT, dfM)
     df_b = data_cleaning(df_merge)
-    
-    result = replicate_columns(df_b)
+
+    # Update Dataframe Until Now
+    end_date = datetime(2023, 12, 31)
+    result = replicate_columns(df_b, end_date)
     result.to_csv(OUTPUT_DIR / 'Corporate Bond Return Replicated.csv', index=False)  # export output to specified path
