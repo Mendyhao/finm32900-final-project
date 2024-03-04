@@ -80,7 +80,7 @@ def combine_Lehman():
 
 def read_trace():
     # 2) TRACE
-    file_path_T = DATA_DIR / 'manual/TRACE.csv'
+    file_path_T = DATA_DIR / 'TRACE.csv'
     columns_T = ['DATE', 'CUSIP', 'PRICE_L5M', 'COUPON', 'YIELD']
     dfT = pd.read_csv(file_path_T, usecols=columns_T)
 
