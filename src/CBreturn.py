@@ -80,7 +80,7 @@ def combine_Lehman():
 
 def read_trace():
     # 2) TRACE
-    file_path_T = DATA_DIR / 'TRACE.csv'
+    file_path_T = DATA_DIR / 'manual/TRACE.csv'
     columns_T = ['DATE', 'CUSIP', 'PRICE_L5M', 'COUPON', 'YIELD']
     dfT = pd.read_csv(file_path_T, usecols=columns_T)
 
@@ -94,7 +94,9 @@ def read_trace():
     return dfT
 
 def read_mergent():
-    file_path_M = DATA_DIR / 'Mergent.csv'
+    # 3) Mergent
+    #file_path_M = DATA_DIR / 'manual/fzwsx7pyydymhs9q.csv'
+    file_path_M = DATA_DIR / 'manual/Mergent.csv'
     columns_M = ['complete_cusip', 'flat_price', 'accrued_interest', 'OFFERING_YIELD', 'trans_date', 'COUPON_TYPE', 'OVERALLOTMENT_OPT', 'PUTABLE']
     dfM = pd.read_csv(file_path_M, usecols=columns_M)
 
@@ -112,6 +114,7 @@ def read_mergent():
     dfM[convert_float] = dfM[convert_float].apply(pd.to_numeric, errors='coerce')
 
     return dfM
+
 
 def merge_and_fillna(dfL, dfT, dfM):
     # Merge 1)&2)
@@ -132,6 +135,8 @@ def merge_and_fillna(dfL, dfT, dfM):
     return df_merge
 
 def data_cleaning(df_merge):
+    
+    def data_cleaning(df_merge):
     
     # 1. Drop corporate price below on cent per dollar
     df_drop = df_merge[~(df_merge['price'] < 0.01)]
@@ -167,6 +172,7 @@ def data_cleaning(df_merge):
     df_b = df_remove.reset_index(drop=True)
 
     return df_b
+
 
 def replicate_columns(df_b, time):
     # Calculate log return
@@ -209,4 +215,3 @@ if __name__ == "__main__":
     end_date = datetime(2023, 12, 31)
     result = replicate_columns(df_b, end_date)
     result.to_csv(OUTPUT_DIR / 'Corporate Bond Return Replicated.csv', index=False)  # export output to specified path
-
