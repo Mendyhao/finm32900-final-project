@@ -10,7 +10,7 @@ import wrds
 db = wrds.Connection(wrds_username=WRDS_USERNAME)
 
 # Collect TRACE data
-sql_query_T = """select DATE, CUSIP, PRICE_L5M, COUPON, YIELD
+sql_query_T = """select date,cusip,price_l5m,coupon,yield
                         from wrdsapps.bondret 
                         """
 df_T = db.raw_sql(sql_query_T)
