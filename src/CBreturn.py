@@ -97,16 +97,24 @@ def read_mergent():
     # 3) Mergent
     #file_path_M = DATA_DIR / 'manual/fzwsx7pyydymhs9q.csv'
     file_path_M = DATA_DIR / 'manual/Mergent.csv'
-    columns_M = ['complete_cusip', 'flat_price', 'accrued_interest', 'OFFERING_YIELD','trans_date']
+    columns_M = ['complete_cusip', 'flat_price', 'accrued_interest', 'OFFERING_YIELD', 'trans_date', 'COUPON_TYPE', 'OVERALLOTMENT_OPT', 'PUTABLE']
     dfM = pd.read_csv(file_path_M, usecols=columns_M)
 
-    stdM = ['id', 'price', 'coupon', 'date', 'yield']
+    stdM = ['id', 'price', 'coupon', 'date', 'yield', 'type', 'over_opt', 'putable']
     dfM = dfM.rename(columns=dict(zip(dfM.columns, stdM)))
-    dfM['date'] = pd.to_datetime(dfM['date'], format='%Y-%m-%d')
+
+    try:
+        dfM['date'] = pd.to_datetime(dfM['date'], format='%Y-%m-%d')
+    except ValueError:
+        print("Error converting date. Setting to default value.")
+        # Handle the error by setting the date to a default value or taking other actions
+        dfM['date'] = pd.to_datetime('1900-01-01')  # Adjust the default date as needed
+
     convert_float = ['yield', 'coupon', 'price']
     dfM[convert_float] = dfM[convert_float].apply(pd.to_numeric, errors='coerce')
 
     return dfM
+
 
 def merge_and_fillna(dfL, dfT, dfM):
     # Merge 1)&2)
@@ -134,6 +142,15 @@ def data_cleaning(df_merge):
 
     # 3. Remove bounceback
 
+    df_drop = df_drop[
+        (df_drop['type'] != 'Z') &
+        (df_drop['over_opt'] != 'Y') &
+        (df_drop['putable'] != 'Y')
+    ]
+    
+    columns_to_drop = ['price_from_dfM', 'coupon_from_dfM', 'yield_from_dfM', 'type', 'over_opt', 'putable']
+    df_drop = df_drop.drop(columns=columns_to_drop)
+
     # Calculate return
     df_sorted = df_drop.sort_values('date', ascending=True).reset_index(drop=True)
     df_sorted['date'].is_monotonic_increasing
@@ -153,6 +170,7 @@ def data_cleaning(df_merge):
     df_b = df_remove.reset_index(drop=True)
 
     return df_b
+
 
 def replicate_columns(df_b, time):
     # Calculate log return
