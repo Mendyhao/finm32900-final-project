@@ -7,7 +7,7 @@ and replicate He_Kelly's result
 Dataset path:
 1) Lehman Brothers dataset: data/'manual'/Lehman data
 2) TRACE dataset: data/'TRACE.csv'
-3) Mergent FISD/NAIC dataset: data/ 'manual'/'Mergent.csv'
+3) Mergent FISD/NAIC dataset: data/ 'manual'/'Mergent_part.csv'
 '''
 
 import os
