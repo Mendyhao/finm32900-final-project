@@ -5,9 +5,9 @@ This file loads the three datasets (Lehman, TRACE, Mergent), conducts data clean
 and replicate He_Kelly's result
 
 Dataset path:
-1) Lehman Brothers dataset: data/manual/Lehman data
+1) Lehman Brothers dataset: data/'manual'/Lehman data
 2) TRACE dataset: data/'TRACE.csv'
-3) Mergent FISD/NAIC dataset: data/'Mergent.csv'
+3) Mergent FISD/NAIC dataset: data/ 'manual'/'Mergent.csv'
 '''
 
 import os
@@ -117,29 +117,36 @@ def read_trace():
 
 def read_mergent():
     # 3) Mergent
-    file_path_M = DATA_DIR / 'Mergent.csv'
+    file_path_M = DATA_DIR / 'manual' / 'Mergent_part.csv'
     dfM = pd.read_csv(file_path_M)
     
     # Rename columns
-    stdM = ['id', 'price', 'coupon', 'date']
+    stdM = ['id', 'price', 'coupon', 'date', 'maturity', 'yield']
     dfM = dfM.rename(columns=dict(zip(dfM.columns, stdM)))
     
 
     # Change data types
-    convert_float = ['coupon', 'price']
+    convert_float = ['coupon', 'price', 'yield']
     dfM[convert_float] = dfM[convert_float].apply(pd.to_numeric, errors='coerce')
 
     # Deal with "date"
     dfM['date'] = pd.to_datetime(dfM['date'], format='%Y-%m-%d', errors = 'coerce')
+    dfM['maturity'] = pd.to_datetime(dfM['maturity'], format='%Y-%m-%d', errors = 'coerce')
     
     # Filter useful rows in Mergent dataset
-    start_date = pd.Timestamp('1998-04-01')
-    end_date = pd.Timestamp('2002-06-30')
-    dfM = dfM[(dfM['date'] >= start_date) & (dfM['date'] <= end_date)]
+    # start_date = pd.Timestamp('1998-04-01')
+    # end_date = pd.Timestamp('2002-06-30')
+    # dfM = dfM[(dfM['date'] >= start_date) & (dfM['date'] <= end_date)]
 
     # Only keep rows where the day is the latest in each month
     dfM = dfM.groupby([dfM['id'], dfM['date'].dt.year, dfM['date'].dt.month]).apply(lambda x: x.loc[x['date'].idxmax()])
     dfM = dfM.reset_index(drop=True)
+    dfM = dfM.dropna(subset=['maturity'])
+
+    # Calculate month_to_maturity
+    dfM['month_to_maturity'] = (dfM['maturity'].dt.to_period('M') - dfM['date'].dt.to_period('M')).apply(lambda x: x.n)
+    dfM = dfM[dfM['month_to_maturity'] <= 360]
+    # dfM['maturity'].isna().sum()
 
     return dfM
 
@@ -151,9 +158,10 @@ def merge_and_fillna(dfL, dfT, dfM):
 
 def data_cleaning(df_merge):
     
-    # Drop corporate price below on cent per dollar
+    # 1. Drop corporate price below on cent per dollar
     df_drop = df_merge[~(df_merge['price'] < 0.01)]
     
+    # 2. Remove rows of adjacent returns whose product is less than -0.04
     # Calculate return
     df_sorted = df_drop.sort_values('date', ascending=True).reset_index(drop=True)
     df_sorted['date'].is_monotonic_increasing

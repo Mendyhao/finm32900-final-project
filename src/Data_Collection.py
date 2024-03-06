@@ -35,17 +35,17 @@ def collect_trace():
     return df_T
 
 
-def collect_mergent():
-    # Connect to WRDS
-    db = wrds.Connection(wrds_username=WRDS_USERNAME)
+# def collect_mergent():
+#     # Connect to WRDS
+#     db = wrds.Connection(wrds_username=WRDS_USERNAME)
 
-    # Collect Mergent data
-    sql_query_M = """select complete_cusip,flat_price,accrued_interest,trans_date 
-                            from fisd.naic_bond_transactions 
-                            """
-    df_M = db.raw_sql(sql_query_M)
+#     # Collect Mergent data
+#     sql_query_M = """select complete_cusip,flat_price,accrued_interest,trans_date 
+#                             from fisd.naic_bond_transactions 
+#                             """
+#     df_M = db.raw_sql(sql_query_M)
 
-    return df_M
+#     return df_M
 
 
 
@@ -53,8 +53,8 @@ if __name__ == "__main__":
     
     # Call functions
     df_T = collect_trace()
-    df_M = collect_mergent()
+    # df_M = collect_mergent()
 
     # Export output
     df_T.to_csv(DATA_DIR / "TRACE.csv", index = False)
-    df_M.to_csv(DATA_DIR / "Mergent.csv", index = False)
+    # df_M.to_csv(DATA_DIR / "Mergent.csv", index = False)
