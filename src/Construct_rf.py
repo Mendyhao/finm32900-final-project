@@ -1,3 +1,12 @@
+"""
+This file constructs interpolated risk-free rate based on constant-maturity Treasury yields.
+
+1. First, NaN values are filled using linear interpolation method;
+
+2. Second, cubic splines method is used to derive interpolated risk-free rates for maturities
+every month during 1 month to 360 months.
+"""
+
 import os
 from pathlib import Path
 
