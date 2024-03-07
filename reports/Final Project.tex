@@ -1,3 +1,8 @@
+% !TeX root = report_example.tex
+\newcommand*{\MyHeaderPath}{.}% This path definition is also passed to inside the header files.
+\newcommand*{\PathToAssets}{../assets}%
+\newcommand*{\PathToOutput}{../output/}%
+% \newcommand*{\PathToBibFile}{bibliography.bib}%
 \documentclass{article}
 
 % Language setting
@@ -19,10 +24,6 @@
 
 \begin{document}
 \maketitle
-
-\begin{abstract}
-Your abstract.
-\end{abstract}
 
 \section{Introduction}
 
@@ -48,17 +49,74 @@ Difficulties arose during our replication efforts, specifically in the treasury 
 
 Additionally, we faced challenges in removing bonds with floating rates and with option features, other than callable bonds, as described in the data processing section of the Nozawa paper. We had difficulty including the necessary variables to filter those bonds when loading the Mergent data while still maintaining an automated data retrieval process. Due to this, our replicated data still includes the bonds with floating rates and with option features. 
 
-\section{ Results}
+\section{ Unit Testing}
 
-\subsection{Summary Statistic Tables}
+To compare the data we replicate to the given sample dataframe (He, Kelly, and Manela (2017)),  we select specific columns for testing, focusing on a randomly chosen short period from September 2003 to December 2003. The test checks if the replicated data is similar to the sample data within a tolerance of 5\%. Additionally, we conduct a test on the mean values for a more extended period, covering the years 1975 to 1997. This test employs a smaller tolerance of 4\% for mean comparison. We set these tolerance levels due to the presence of outliers in the data. The unit test ensures that the replicated data aligns with the expected data within the specified tolerance levels.
 
+To visualize the similarity, we employ another method by graphing the data into a comparison line plot (Figure 1). It illustrates how the replicated data aligns with the sample dataframe over most of the selected time periods.
+
+\begin{figure} [h]
+    \centering
+    \includegraphics[width=0.75\linewidth]{output/comparison_lineplot.png}
+    \caption{Comparison Line Plot}
+    \label{fig:comparison plot}
+\end{figure}
+\clearpage  % Start a new page
+
+\section{ Summary Statistic Tables}
+To compare bond portfolios across dataframes, three summary statistics tables were generated. Tables 1 and 2 correspond to the He, Kelly, and Manela (2017) dataframe. Tables 3 and 4 represent data replicated from 1973 to 2012, matching the paper's period. Tables 5 and 6 showcase data replicated from 1973 and updated to 2023.  
+\\
+The breakdown of key statistical measures for the US Bond Portfolios 11-20 is detailed as follows: 
+
+\subsection{He, Kelly, and Manela (2017)}
+\begin{table}[h] 
+\centering 
+   \caption{Summary Statistics of Sample Dataframe}
+   \input{output/Original_summary_table_part1}
+\end{table}
+
+\begin{table}[h] 
+\centering 
+   \caption{Summary Statistics of Sample Dataframe}
+   \input{output/Original_summary_table_part2}
+\end{table}
+
+
+\subsection{Replicated Data from 1973 to 2012}
+\begin{table}[h] 
+\centering 
+   \caption{Summary Statistics 1973-2012}
+   \input{output/2012_summary_table_part1}
+\end{table}
+\clearpage  % Start a new page
+\begin{table}[h]
+\centering 
+   \caption{Summary Statistics 1973-2023}
+   \input{output/2012_summary_table_part2}
+\end{table}
+
+
+\subsection{Replicated Data from 1973, Updated to 2023 }
+\begin{table}[h]
+\centering
+   \caption{Summary Statistics 1973-2023}
+   \input{output/2023_summary_table_part1}
+\end{table}
+\begin{table}[h]
+\centering
+   \caption{Summary Statistics 1973-2023}
+   \input{output/2023_summary_table_part2}
+\end{table}
+
+\section{ Comparison and Conclusion}
+In comparing the summary statistics of US bond portfolios 11-20 derived from our replicated data for the period 1973-2012 with the sample data from the paper, several observations can be made. Despite the omission of some preprocessing steps in our data replication process, the mean returns of each portfolio in our dataset closely resemble those in the paper. The majority of portfolios exhibit minimal differences, with variances typically within 0.01.
+\\\\ 
+However, notable distinctions emerge for portfolios with larger yield spreads. These portfolios demonstrate more significant differences, suggesting that the replication accuracy may be influenced by the specific characteristics of the bond portfolios. The impact of omitted preprocessing steps on these particular portfolios warrants further investigation. 
+\\\\ 
+While our replication aligns well with the mean returns of most portfolios, the observed differences emphasize the importance of meticulous data preprocessing steps, especially when dealing with portfolios exhibiting greater variability in yields. Future work could focus on refining the replication process to address these differences and enhance the overall accuracy of the replicated dataset. 
 
 \bibliographystyle{alpha}
 \bibliography{sample}
-<<<<<<< Updated upstream
-
-\end{document}
-=======
 \\\\
 [1] WRDS Corporate Bond Database: Data Overview and Construction Manual, WRDS Research April 2017,\\
 (https://wrds-www.wharton.upenn.edu/documents/248/WRDS_Corporate_Bond_Database_Manual.pdf.)
@@ -77,4 +135,3 @@ Additionally, we faced challenges in removing bonds with floating rates and with
 \\\\
 [8] NOZAWA, YOSHIO. What Drives the Cross-Section of Credit Spreads?: A   Variance Decomposition Approach. \\The Journal of Finance, Oct. 2017, DOI: 10.1111/jofi.12524. 
 \end{document}
->>>>>>> Stashed changes
