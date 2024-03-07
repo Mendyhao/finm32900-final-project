@@ -28,13 +28,26 @@ df_minus = CBreturn.minus_rf(df_b)
 end_date = datetime(2012, 12, 31)
 df_raw = CBreturn.replicate_columns(df_minus, end_date)
 
-# Import Data for Comparison
-df_expected = pd.read_csv(f'{DATA_DIR}/manual/He_Kelly_Manela_Factors_And_Test_Assets_monthly.csv')
+
 
 
 
 # Test if the data we replicate is similar to the sample data for a short period of time
 def test_df_cb_columns():
+    # Import Coporate Bond Return Data
+    dfL = CBreturn.combine_Lehman()
+    dfT = CBreturn.read_trace()
+    dfM = CBreturn.read_mergent()
+    df_merge = CBreturn.merge_and_fillna(dfL, dfT, dfM)
+    df_b = CBreturn.data_cleaning(df_merge)
+    df_minus = CBreturn.minus_rf(df_b)
+
+    end_date = datetime(2012, 12, 31)
+    df_raw = CBreturn.replicate_columns(df_minus, end_date)
+    
+    # Import Data for Comparison
+    df_expected = pd.read_csv(f'{DATA_DIR}/manual/He_Kelly_Manela_Factors_And_Test_Assets_monthly.csv')
+    
     # Select columns for testing
     df_expected = df_expected[['yyyymm',
         'US_bonds_11', 'US_bonds_12',
@@ -69,6 +82,19 @@ def test_df_cb_columns():
 
 # Test the mean from 1975-1997 (longer period of time)
 def test_df_cb_mean():
+    # Import Coporate Bond Return Data
+    dfL = CBreturn.combine_Lehman()
+    dfT = CBreturn.read_trace()
+    dfM = CBreturn.read_mergent()
+    df_merge = CBreturn.merge_and_fillna(dfL, dfT, dfM)
+    df_b = CBreturn.data_cleaning(df_merge)
+    df_minus = CBreturn.minus_rf(df_b)
+
+    end_date = datetime(2012, 12, 31)
+    df_raw = CBreturn.replicate_columns(df_minus, end_date)
+    
+    # Import Data for Comparison
+    df_expected = pd.read_csv(f'{DATA_DIR}/manual/He_Kelly_Manela_Factors_And_Test_Assets_monthly.csv')
     # Select columns for testing
     df_expected = df_expected[['yyyymm',
         'US_bonds_11', 'US_bonds_12',
