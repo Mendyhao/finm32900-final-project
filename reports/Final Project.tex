@@ -38,9 +38,9 @@ Besides the above data sources on corporate bonds, the replication also involves
 
 \subsection{Data Prepossessing}
 
-The merging process involves combining Lehman Brothers and TRACE data, and filling missing dates with Mergent FISD/NAIC.  As we utilize the WRDS Bond Return database, it's crucial to note that this source inherently includes monthly bond returns that account for defaults. We do not rely on Moody's Default Risk Service for complementing prices upon default. The dataset undergoes filtering to remove bonds with floating rates and non-callable options. Matching with synthetic Treasury bonds is performed to calculate excess returns and credit spreads. 
+The merging process involves combining Lehman Brothers and TRACE data, and filling missing dates with Mergent FISD/NAIC. As we utilize the WRDS Bond Return database, it's crucial to note that this source inherently includes monthly bond returns that account for defaults. We do not rely on Moody's Default Risk Service for complementing prices upon default. The dataset undergoes filtering to remove bonds with floating rates and non-callable options. Matching with synthetic Treasury bonds is performed to calculate excess returns and credit spreads. 
 
-Data cleaning includes removing bonds with prices higher than matching Treasury bond prices and handling return observations showing significant bouncebacks. The final dataset is sorted into 10 columns based on yield spreads, each representing a U.S. corporate bond portfolio. This comprehensive process ensures a robust dataset for empirical analysis. 
+Data cleaning includes removing bonds price with prices higher than matching Treasury bond prices, removing bond prices lower than one cent, and handling return observations showing significant bouncebacks. The final dataset is sorted into 10 columns based on yield spreads, each representing a U.S. corporate bond portfolio. This comprehensive process ensures a robust dataset for empirical analysis. 
 
 \subsection{Difficulties}
 
@@ -55,5 +55,26 @@ Additionally, we faced challenges in removing bonds with floating rates and with
 
 \bibliographystyle{alpha}
 \bibliography{sample}
+<<<<<<< Updated upstream
 
 \end{document}
+=======
+\\\\
+[1] WRDS Corporate Bond Database: Data Overview and Construction Manual, WRDS Research April 2017,\\
+(https://wrds-www.wharton.upenn.edu/documents/248/WRDS_Corporate_Bond_Database_Manual.pdf.)
+\\\\
+[2] Arthur Warga, Lehman Brothers Fixed Income Database, Jan 1973 - Dec 1997. 2000, \\(http://www.columbia.edu/acis/eds/holdings/1021/. )
+\\\\
+[3] Gwangheon Hong, & Warga, A. (2000). An Empirical Study of Bond Market Transactions. \\Financial Analysts Journal, 56(2), 32-46.
+\\\\
+[4] Nianyun (Kelly) Cai, Jean Helwege, Arthur Warga, Underpricing in the Corporate Bond Market, \\The Review of Financial Studies, Volume 20, Issue 6, November 2007, Pages 2021-2046, \\(https://doi.org/10.1093/rfs/hhm048)
+\\\\
+[5] Mergent FISD Transactions (Fisd_naic). 28 July 2023,\\ (https://wrds-www.wharton.upenn.edu/data-dictionary/fisd_naic/. )
+\\\\
+[6] US  Treasury Database Guide For SAS, ASCII, EXCEL \& R. CRSP Center For Research in Security Prices, LLC, \\(https://drive.google.com/file/d/1joqukSE4P4noGmPH8fcbg5fGURtJfFIL/view. )
+\\\\
+[7] He, Zhiguo, et al. Intermediary Asset Pricing: \\New Evidence from Many Asset Classes. Journal of Financial Economics, 12 Aug. 2017. 
+\\\\
+[8] NOZAWA, YOSHIO. What Drives the Cross-Section of Credit Spreads?: A   Variance Decomposition Approach. \\The Journal of Finance, Oct. 2017, DOI: 10.1111/jofi.12524. 
+\end{document}
+>>>>>>> Stashed changes
