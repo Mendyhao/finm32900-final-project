@@ -33,6 +33,7 @@ df2 = CBreturn.replicate_columns(df_minus, end_now)
 
 df_expected = pd.read_csv(f'{DATA_DIR}/manual/He_Kelly_Manela_Factors_And_Test_Assets_monthly.csv')
 
+
 ## Suppress scientific notation and limit to 3 decimal places
 # Sets display, but doesn't affect formatting to LaTeX
 pd.set_option('display.float_format', lambda x: '%.2f' % x)
@@ -106,20 +107,16 @@ def generate_summary_tables(df, name):
     with open(f'{OUTPUT_DIR}/{name}_summary_table_part2.tex', 'w') as f:
         f.write(part2_table)
 
+# Generate Summary Statistics (Year 1973-2012)
 generate_summary_tables(df1, "2012")
+# Generate Summary Statistics (Year 1973-2023)
 generate_summary_tables(df2, "2023")
 
 
-# Generate Summary Statistics (Year 1973-2023)
-df2_summary = df2.drop('date', axis=1).describe()
-df2_summary = pd.DataFrame(df2_summary).to_latex()
-with open(f'{OUTPUT_DIR}/summary_table_now.tex', 'w') as f:
-    f.write(df2_summary)
 
 
 
-
-# graph
+# Graph
 def generate_comparison_lineplot(df_expected, df):
     df_expected = df_expected[['yyyymm',
             'US_bonds_11', 'US_bonds_12',
