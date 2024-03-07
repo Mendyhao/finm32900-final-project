@@ -1,9 +1,22 @@
-Project Title HERE
+Replication of Nozawa, Yoshio's “What Drives the Cross‐Section of Credit Spreads?: A Variance Decomposition Approach.”
 ==================
+### Julia Klauss, Joy Wu, Mengdi Hao, Yu-Ting Weng
 
 # About this project
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+In this project, we replicate data and tables from Nozawa, Yoshio's “What Drives the Cross‐Section of Credit Spreads?: A Variance Decomposition Approach." In addition, we reproduce the data and tables with updated numbers until 2023/12/31. We replicate the corporate bond columns from the monthly test assets from He, Kelly, and Manela (2017).
+
+## Data Collection
+
+The panel data for corporate bond prices is constructed from three primary databases: Lehman Brothers Fixed Income Database, Mergent FISD/NAIC Database, and TRACE. The priority order for overlapping data is Lehman Brothers, TRACE, and Mergent FISD/NAIC. Lehman Brothers database covers from 1973/01 to 1998/03 and TRACE database covers from 2022/07 to 2023/12. The time gap between these two databases is filled by Mergent FISD/NAIC database.
+
+Besides the above data sources on corporate bonds, the replication also involves using risk-free rate as the columns represent excess returns, which is calculated by corporate bond return minus a matching risk-free rate. Constant-maturity treasury yields are collected, according to Nozawa (2017), to calculate maturity-matching risk-free rate. There are 11 different maturities in the original treasury yields data: 1-month, 3-month, 6-month, 1-year, 2-year, 3-year, 5-year, 7-year, 10-year, 20-year, and 30-year. To find a matching risk-free rate for corporate bonds with different time-to-maturity, we conducted a cubic splines interpolation method to interpolate the original treasury yields. This interpolation process was done for every month during 1953/04 and 2024/01. The interpolation step is set to one month as our data frequency is monthly.After interpolation, we have monthly treasury yields from 1953/04 to 2024/01 for maturities from 1-month to 360-month.
+
+## Data Processing
+
+The merging process involves combining Lehman Brothers and TRACE data, and filling missing dates with Mergent FISD/NAIC.  As we utilize the WRDS Bond Return database, it's crucial to note that this source inherently includes monthly bond returns that account for defaults. We do not rely on Moody's Default Risk Service for complementing prices upon default. The dataset undergoes filtering to remove bonds with floating rates and non-callable options. Matching with synthetic Treasury bonds is performed to calculate excess returns and credit spreads. 
+
+Data cleaning includes removing bonds with prices higher than matching Treasury bond prices and handling return observations showing significant bouncebacks. The final dataset is sorted into 10 columns based on yield spreads, each representing a U.S. corporate bond portfolio. This comprehensive process ensures a robust dataset for empirical analysis. 
 
 # Quick Start
 
@@ -34,14 +47,9 @@ doit
 
 # Data and Output Storage
 
-I'll often use a separate folder for storing data. I usually write code that will pull the data and save it to a directory in the data folder called "pulled"  to let the reader know that anything in the "pulled" folder could hypothetically be deleted and recreated by rerunning the PyDoit command (the pulls are in the dodo.py file).
+We pull the datasets and save them to a directory in the data folder called "pulled," which contains data that could hypothetically be deleted and recreated by rerunning the PyDoit command (the pulls are in the dodo.py file). Our manually-created data is stored in the data/manual folder.
 
-I'll usually store manually created data in the "assets" folder if the data is small enough. Because of the risk of manually data getting changed or lost, I prefer to keep it under version control if I can.
-
-Output is stored in the "output" directory. This includes tables, charts, and rendered notebooks. When the output is small enough, I'll keep this under version control. I like this because I can keep track of how tables change as my analysis progresses, for example.
-
-Of course, the data directory and output directory can be kept elsewhere on the machine. To make this easy, I always include the ability to customize these locations by defining the path to these directories in environment variables, which I intend to be defined in the `.env` file, though they can also simply be defined on the command line or elsewhere. The `config.py` is reponsible for loading these environment variables and doing some like preprocessing on them. The `config.py` file is the entry point for all other scripts to these definitions. That is, all code that references these variables and others are loading by importing `config`.
-
+Output is stored in the "output" directory. This includes our tables, charts, and rendered notebooks.
 
 # Dependencies and Virtual Environments
 
