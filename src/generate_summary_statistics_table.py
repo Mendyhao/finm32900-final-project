@@ -34,6 +34,7 @@ df2 = CBreturn.replicate_columns(df_minus, end_now)
 df_expected = pd.read_csv(f'{DATA_DIR}/manual/He_Kelly_Manela_Factors_And_Test_Assets_monthly.csv')
 
 
+
 ## Suppress scientific notation and limit to 3 decimal places
 # Sets display, but doesn't affect formatting to LaTeX
 pd.set_option('display.float_format', lambda x: '%.2f' % x)
@@ -111,6 +112,15 @@ def generate_summary_tables(df, name):
 generate_summary_tables(df1, "2012")
 # Generate Summary Statistics (Year 1973-2023)
 generate_summary_tables(df2, "2023")
+# Generate Summary Statistics (Sample Dataframe)
+df_expected1 = df_expected[[
+            'US_bonds_11', 'US_bonds_12',
+            'US_bonds_13',	'US_bonds_14',
+            'US_bonds_15',	'US_bonds_16',
+            'US_bonds_17',	'US_bonds_18',
+            'US_bonds_19',	'US_bonds_20',
+        ]]
+generate_summary_tables(df_expected1, "Original")
 
 
 
