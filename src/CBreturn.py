@@ -1,16 +1,13 @@
 '''
 README
 
-What next:
-please check the coding part; (checked -- Mengdi Hao) (checked -- Mengdi Hao)
-maybe convert into def or seperate them into deferent files; (separated into functions -- Mengdi Hao) (separated into functions -- Mengdi Hao)
-please add the filter part, refer to the high light lines in google file; (TO BE DONE) (TO BE DONE)
-please add them to github
+This file loads the three datasets (Lehman, TRACE, Mergent), conducts data cleaning process, calculates excess return,
+and replicate He_Kelly's result
 
 Dataset path:
-1) Lehman Brothers dataset: data/manual/Lehman data
+1) Lehman Brothers dataset: data/'manual'/Lehman data
 2) TRACE dataset: data/'TRACE.csv'
-3) Mergent FISD/NAIC dataset: data/'Mergent.csv'
+3) Mergent FISD/NAIC dataset: data/ 'manual'/'Mergent_part.csv'
 '''
 
 import os
@@ -47,7 +44,7 @@ def combine_Lehman():
         r'.*?\s{2,}'           # skip name column
         r'(\d{8})\s+'          # date
         r'.*?\s+'              # skip idate 
-        r'.*?\s+'              # skip mdate column
+        r'(\d{8})\s+'          # mdate
         r'.*?\s+'              # skip tdrmtx column
         r'(-?\d+\.\d{3})\s+'   # fprc
         r'.*?\s+'              # skip aint column
@@ -69,7 +66,7 @@ def combine_Lehman():
                     data.append(match.groups())
                     
         # specify columns
-        columns = ['cusip', 'date', 'fprc', 'cp', 'yld']
+        columns = ['cusip', 'date', 'maturity', 'fprc', 'cp', 'yld']
         df = pd.DataFrame(data, columns=columns)
         dfs.append(df)
 
@@ -78,12 +75,20 @@ def combine_Lehman():
 
     # convert date format
     dfL['date'] = pd.to_datetime(dfL['date'], format='%Y%m%d', errors='coerce')
+    dfL['maturity'] = pd.to_datetime(dfL['maturity'], format='%Y%m%d', errors='coerce')
+    dfL = dfL.dropna(subset=['maturity'])
 
     # convert numbers to numeric format
     convert_float = ['fprc', 'cp', 'yld']
     dfL[convert_float] = dfL[convert_float].apply(pd.to_numeric, errors='coerce')
 
-    stdL = ['id', 'date', 'price', 'coupon', 'yield']
+    # Calculate month_to_maturity 
+    dfL['month_to_maturity'] = (dfL['maturity'].dt.to_period('M') - dfL['date'].dt.to_period('M')).apply(lambda x: x.n)
+    
+    dfL = dfL[dfL['month_to_maturity'] <= 360]
+
+
+    stdL = ['id', 'date', 'maturity', 'price', 'coupon', 'yield', 'month_to_maturity']
     dfL = dfL.rename(columns=dict(zip(dfL.columns, stdL)))
     
     return dfL
@@ -91,59 +96,63 @@ def combine_Lehman():
 def read_trace():
     # 2) TRACE
     file_path_T = DATA_DIR / 'TRACE.csv'
-    # columns_T = ['date', 'cusip', 'price_l5m', 'coupon', 'yield']
-    # dfT = pd.read_csv(file_path_T, usecols=columns_T)
     dfT = pd.read_csv(file_path_T)
     dfT['yield'] = dfT['yield']*100 # data automatically collected
 
-    stdT = ['date', 'id', 'price', 'coupon', 'yield']
+    stdT = ['date', 'id', 'price', 'coupon', 'yield', 'maturity']
     dfT = dfT.rename(columns=dict(zip(dfT.columns, stdT)))
     dfT['date'] = pd.to_datetime(dfT['date'], format='%Y-%m-%d')
+    dfT['maturity'] = pd.to_datetime(dfT['maturity'], format='%Y-%m-%d')
 
     # dfT['yield'] = dfT['yield'].str.rstrip('%')
     convert_float = ['yield', 'coupon', 'price']
     dfT[convert_float] = dfT[convert_float].apply(pd.to_numeric, errors='coerce')
 
+    # Calculate month_to_maturity
+    dfT['month_to_maturity'] = (dfT['maturity'].dt.to_period('M') - dfT['date'].dt.to_period('M')).apply(lambda x: x.n)
+    dfT = dfT[dfT['month_to_maturity'] <= 360]
+
+
     return dfT
 
 def read_mergent():
     # 3) Mergent
-
-    file_path_M = DATA_DIR / 'Mergent.csv'
-    # columns_M = ['complete_cusip', 'flat_price', 'accrued_interest', 'OFFERING_YIELD','trans_date']
-    # dfM = pd.read_csv(file_path_M, usecols=columns_M)
+    file_path_M = DATA_DIR / 'manual' / 'Mergent_part.csv'
     dfM = pd.read_csv(file_path_M)
     
-    # stdM = ['id', 'price', 'coupon', 'date']
-    # stdM = ['id', 'price', 'coupon', 'date', 'yield']
-    stdM = ['id', 'price', 'coupon', 'date', 'COUPON_TYPE', 'OVERALLOTMENT_OPT', 'PUTABLE']
+    # Rename columns
+    stdM = ['id', 'price', 'coupon', 'date', 'maturity', 'yield']
     dfM = dfM.rename(columns=dict(zip(dfM.columns, stdM)))
+    
 
-    dfM['date'] = pd.to_datetime(dfM['date'], format='%Y-%m-%d', errors = 'coerce')
-    # dfM['date'] = pd.to_datetime(dfM['date'], format='%Y-%m-%d')
-
-    # convert_float = ['yield', 'coupon', 'price']
-    convert_float = ['coupon', 'price']
+    # Change data types
+    convert_float = ['coupon', 'price', 'yield']
     dfM[convert_float] = dfM[convert_float].apply(pd.to_numeric, errors='coerce')
+
+    # Deal with "date"
+    dfM['date'] = pd.to_datetime(dfM['date'], format='%Y-%m-%d', errors = 'coerce')
+    dfM['maturity'] = pd.to_datetime(dfM['maturity'], format='%Y-%m-%d', errors = 'coerce')
+    
+    # Filter useful rows in Mergent dataset
+    # start_date = pd.Timestamp('1998-04-01')
+    # end_date = pd.Timestamp('2002-06-30')
+    # dfM = dfM[(dfM['date'] >= start_date) & (dfM['date'] <= end_date)]
+
+    # Only keep rows where the day is the latest in each month
+    dfM = dfM.groupby([dfM['id'], dfM['date'].dt.year, dfM['date'].dt.month]).apply(lambda x: x.loc[x['date'].idxmax()])
+    dfM = dfM.reset_index(drop=True)
+    dfM = dfM.dropna(subset=['maturity'])
+
+    # Calculate month_to_maturity
+    dfM['month_to_maturity'] = (dfM['maturity'].dt.to_period('M') - dfM['date'].dt.to_period('M')).apply(lambda x: x.n)
+    dfM = dfM[dfM['month_to_maturity'] <= 360]
+    # dfM['maturity'].isna().sum()
 
     return dfM
 
-
 def merge_and_fillna(dfL, dfT, dfM):
-    # Merge 1)&2)
-    df_merge_12 = pd.concat([dfL, dfT], axis=0)
-
-    # Fillna by 3)
-
-    # Merge df_merge_12 and dfM based on id and data
-    df_merge = pd.merge(df_merge_12, dfM, on=['id', 'date'], how='left', suffixes=('', '_from_dfM'))
-
-    # Loop through columns to update NaN values using values from dfM
-    for col in df_merge.columns:
-        if '_from_dfM' in col:
-            original_col = col.replace('_from_dfM', '')
-            df_merge[original_col] = df_merge[original_col].fillna(df_merge[col])
-            df_merge.drop(columns=col, inplace=True)  # delete helper column
+    # Merge 1)&2)&3)
+    df_merge = pd.concat([dfL, dfT, dfM], axis=0)
 
     return df_merge
 
@@ -151,19 +160,8 @@ def data_cleaning(df_merge):
     
     # 1. Drop corporate price below on cent per dollar
     df_drop = df_merge[~(df_merge['price'] < 0.01)]
-    print(df_drop)
-
-    # 2. Remove bounceback
-
-    df_drop = df_drop[
-        (df_drop['COUPON_TYPE'] != 'Z') &
-        (df_drop['OVERALLOTMENT_OPT'] != 'Y') &
-        (df_drop['PUTABLE'] != 'Y')
-    ]
     
-    columns_to_drop = ['price_from_dfM', 'coupon_from_dfM', 'yield_from_dfM', 'COUPON_TYPE', 'OVERALLOTMENT_OPT', 'PUTABLE']
-    df_drop = df_drop.drop(columns=columns_to_drop)
-
+    # 2. Remove rows of adjacent returns whose product is less than -0.04
     # Calculate return
     df_sorted = df_drop.sort_values('date', ascending=True).reset_index(drop=True)
     df_sorted['date'].is_monotonic_increasing
@@ -174,40 +172,64 @@ def data_cleaning(df_merge):
     df_b = df_sorted.sort_values(['id', 'date'])
     indices_to_remove = []
 
-    for _, group in df_b.groupby('id'):
-        product = group['return'].shift(1) * group['return']
-        mask = product < -0.04
-        indices_to_remove.extend(group.loc[mask].index)
+    # The following code is commented out because previous running result shows that there is no such case
+    # You can check by bringing these code back
+    
+    # for _, group in df_b.groupby('id'):
+    #     product = group['return'].shift(1) * group['return']
+    #     mask = product < -0.04
+    #     indices_to_remove.extend(group.loc[mask].index)
 
     df_remove = df_b.drop(indices_to_remove)
     df_b = df_remove.reset_index(drop=True)
 
     return df_b
 
+def minus_rf(df_b):
 
-def replicate_columns(df_b, time):
-    # Calculate log return
+    df_b['year_month'] = df_b['date'].dt.to_period('M')
 
-    df_b['log_return'] = np.log(df_b['return'])
-    df_b = df_b.dropna(subset=['log_return'])
-        #check
-    # df_b.describe()
+    # Load interpolated rf rate
+    rf_rates_df = pd.read_csv(OUTPUT_DIR / 'Interpolated_Rf.csv')
+    rf_rates_df['Date'] = pd.to_datetime(rf_rates_df['Date'])
+    rf_rates_df['year_month'] = rf_rates_df['Date'].dt.to_period('M')
 
-    # Calculate sum
-    df_sum = df_b.dropna(subset=['yield'])
+    # Change rf to long format
+    rf_long_df = rf_rates_df.melt(id_vars=['Date', 'year_month'], var_name='month', value_name='rf_rate')
+    rf_long_df['month_to_maturity'] = rf_long_df['month'].str.replace('M', '').astype(int)
 
-    #Filter by Date
-    df_sum = df_sum[df_sum['date']<=time]
+    # Merge df_b and rf based on year_month and month_to_maturity
+    merged_df = df_b.merge(rf_long_df, on=['year_month', 'month_to_maturity'], how='left')
 
-    yield_means = df_sum.groupby('id')['yield'].mean() 
-    df_sum['mean_yield'] = df_sum['id'].map(yield_means)
-    df_sum['group'] = pd.qcut(df_sum['mean_yield'], q=10, labels=False)
-    #df_sum['group'] = pd.qcut(df_sum['yield'], q=10, labels=False)
+    merged_df['excess_return'] = np.log(merged_df['return']) - np.log(merged_df['rf_rate']/100+1)
+    merged_df = merged_df.dropna(subset=['excess_return'])
 
-    group_means = df_sum.groupby(['date', 'group'])['return'].mean().reset_index()
-    result = group_means.pivot(index='date', columns='group', values='return').reset_index()
-    print(result)
+    # Calculate yield spread
+    merged_df['yield_spread'] = merged_df['yield'] - merged_df['rf_rate']
+
+    df_minus = merged_df
+
+    return df_minus
+
+def replicate_columns(df_minus, end_date):
     
+    df_sum = df_minus[df_minus['date']<=end_date]
+
+    df_sum = df_sum.dropna(subset=['yield_spread'])
+    df_sum['date'] = df_sum['date'].dt.to_period("M")
+
+    # Sort portfolios by yield_spread
+    df_sum['group'] = df_sum.groupby('date')['yield_spread'].transform(lambda x: pd.qcut(x, 10, labels=False, duplicates='drop'))
+
+    # Calculate average value of excess_return for each group
+    grouped = df_sum.groupby(['date', 'group'])['excess_return'].mean().reset_index()
+
+    # Derive result
+    result = grouped.pivot(index='date', columns='group', values='excess_return')
+
+    result = result.reset_index()
+    
+    # Rename the columns
     rename = result.columns[1:]
     new_column_names = ['US_bonds_{:02d}'.format(i+11) for i in range(len(rename))]
     columns_mapping = dict(zip(rename, new_column_names))
@@ -216,15 +238,19 @@ def replicate_columns(df_b, time):
     return result
 
 if __name__ == "__main__":
-    
     # Call functions
     dfL = combine_Lehman()
     dfT = read_trace()
     dfM = read_mergent()
     df_merge = merge_and_fillna(dfL, dfT, dfM)
     df_b = data_cleaning(df_merge)
+    df_minus = minus_rf(df_b)
 
     # Update Dataframe Until Now
     end_date = datetime(2023, 12, 31)
-    result = replicate_columns(df_b, end_date)
+    result = replicate_columns(df_minus, end_date)
     result.to_csv(OUTPUT_DIR / 'Corporate Bond Return Replicated.csv', index=False)  # export output to specified path
+
+
+
+
